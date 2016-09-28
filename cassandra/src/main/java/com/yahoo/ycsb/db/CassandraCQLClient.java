@@ -60,6 +60,7 @@ public class CassandraCQLClient extends DB {
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
 
   public static final String YCSB_KEY = "y_id";
+  public static final String YCSB_FIELD0 = "field0";
   public static final String KEYSPACE_PROPERTY = "cassandra.keyspace";
   public static final String KEYSPACE_PROPERTY_DEFAULT = "ycsb";
   public static final String USERNAME_PROPERTY = "cassandra.username";
@@ -91,8 +92,6 @@ public class CassandraCQLClient extends DB {
    */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  private static boolean debug = false;
-
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
    * DB instance per client thread.
@@ -113,10 +112,6 @@ public class CassandraCQLClient extends DB {
       }
 
       try {
-
-        debug =
-            Boolean.parseBoolean(getProperties().getProperty("debug", "false"));
-
         String host = getProperties().getProperty(HOSTS_PROPERTY);
         if (host == null) {
           throw new DBException(String.format(
@@ -247,13 +242,13 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      stmt = selectBuilder.from(table).where(QueryBuilder.eq(YCSB_KEY, key))
-          .limit(1);
+      Select from = selectBuilder.from(table);
+      Select.Where where = from.where(QueryBuilder.eq(YCSB_KEY, key)).and(QueryBuilder.eq(YCSB_FIELD0, "C"));
+      stmt = where.limit(1);
+
       stmt.setConsistencyLevel(readConsistencyLevel);
 
-      if (debug) {
-        System.out.println(stmt.toString());
-      }
+      System.out.println(stmt.toString());
 
       ResultSet rs = session.execute(stmt);
 
@@ -340,9 +335,7 @@ public class CassandraCQLClient extends DB {
       stmt = new SimpleStatement(scanStmt.toString());
       stmt.setConsistencyLevel(readConsistencyLevel);
 
-      if (debug) {
-        System.out.println(stmt.toString());
-      }
+      System.out.println(stmt.toString());
 
       ResultSet rs = session.execute(stmt);
 
@@ -429,9 +422,7 @@ public class CassandraCQLClient extends DB {
 
       insertStmt.setConsistencyLevel(writeConsistencyLevel);
 
-      if (debug) {
-        System.out.println(insertStmt.toString());
-      }
+      System.out.println(insertStmt.toString());
 
       session.execute(insertStmt);
 
@@ -462,9 +453,7 @@ public class CassandraCQLClient extends DB {
           .where(QueryBuilder.eq(YCSB_KEY, key));
       stmt.setConsistencyLevel(writeConsistencyLevel);
 
-      if (debug) {
-        System.out.println(stmt.toString());
-      }
+      System.out.println(stmt.toString());
 
       session.execute(stmt);
 
