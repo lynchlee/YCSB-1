@@ -56,11 +56,14 @@ public class CassandraCQLClient extends DB {
   private static Cluster cluster = null;
   private static Session session = null;
 
-  private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
-  private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
+  private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.QUORUM;
+  private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.QUORUM;
 
   public static final String YCSB_KEY = "y_id";
-//  public static final String YCSB_FIELD0 = "field0";
+  public static final String YCSB_FIELD0 = "field0";
+//  public static final String YCSB_FIELD_BODY = "body";
+//  public static final String YCSB_FIELD_USER = "user";
+
   public static final String KEYSPACE_PROPERTY = "cassandra.keyspace";
   public static final String KEYSPACE_PROPERTY_DEFAULT = "ycsb";
   public static final String USERNAME_PROPERTY = "cassandra.username";
@@ -71,9 +74,9 @@ public class CassandraCQLClient extends DB {
   public static final String PORT_PROPERTY_DEFAULT = "9042";
 
   public static final String READ_CONSISTENCY_LEVEL_PROPERTY = "cassandra.readconsistencylevel";
-  public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+  public static final String READ_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "QUORUM";
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY = "cassandra.writeconsistencylevel";
-  public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+  public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "QUORUM";
 
   public static final String MAX_CONNECTIONS_PROPERTY = "cassandra.maxconnections";
   public static final String CORE_CONNECTIONS_PROPERTY = "cassandra.coreconnections";
@@ -229,23 +232,33 @@ public class CassandraCQLClient extends DB {
         }
       }
 
-      Select from = selectBuilder.from(table);
+
+//      String cql = "SELECT * FROM usertable limit 1";
+      String cql = "SELECT * FROM usertable WHERE expr(usertable_index, '{query : {type: \"prefix\", field: \"field0\", value: \"=\" }}') limit 1;";
+//      String cql = "SELECT * FROM usertable WHERE expr(usertable_index, '{\"filter\":[{\"type\":\"boolean\",\"must\":" +
+//        "[{\"type\":\"wildcard\",\"field\":\"field0\",\"value\":\"*a\"}]}]}') limit 1;";
+
+      ResultSet rs2 = session.execute(cql);
+
+      System.out.println(cql);
+
+//      Select from = selectBuilder.from(table);
 //      Select.Where where = from.where(QueryBuilder.eq(YCSB_KEY, key)).and(QueryBuilder.eq(YCSB_FIELD0, "C"));
-      Select.Where where = from.where(QueryBuilder.eq(YCSB_KEY, key));
-      stmt = where.limit(1);
+//      Select.Where where = from.where(QueryBuilder.eq(YCSB_KEY, key));
+//      stmt = where.limit(1);
+//
+//      stmt.setConsistencyLevel(readConsistencyLevel);
+//
+//      System.out.println(stmt.toString());
+//
+//      ResultSet rs = session.execute(stmt);
 
-      stmt.setConsistencyLevel(readConsistencyLevel);
-
-      System.out.println(stmt.toString());
-
-      ResultSet rs = session.execute(stmt);
-
-      if (rs.isExhausted()) {
+      if (rs2.isExhausted()) {
         return Status.NOT_FOUND;
       }
 
       // Should be only 1 row
-      Row row = rs.one();
+      Row row = rs2.one();
       ColumnDefinitions cd = row.getColumnDefinitions();
 
       for (ColumnDefinitions.Definition def : cd) {
@@ -330,7 +343,7 @@ public class CassandraCQLClient extends DB {
       HashMap<String, ByteIterator> tuple;
       while (!rs.isExhausted()) {
         Row row = rs.one();
-        tuple = new HashMap<String, ByteIterator>();
+        tuple = new HashMap<>();
 
         ColumnDefinitions cd = row.getColumnDefinitions();
 
@@ -406,6 +419,7 @@ public class CassandraCQLClient extends DB {
         value = byteIterator.toString();
 
         insertStmt.value(entry.getKey(), value);
+//        insertStmt.value(YCSB_FIELD_BODY, value);
       }
 
       insertStmt.setConsistencyLevel(writeConsistencyLevel);

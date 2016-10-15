@@ -354,7 +354,7 @@ public class CommandLine
 	       }
 	       else 
 	       {
-		  HashMap<String,ByteIterator> values=new HashMap<String,ByteIterator>();
+		  HashMap<String,ByteIterator> values=new HashMap<>();
 
 		  for (int i=2; i<tokens.length; i++)
 		  {
